@@ -15,7 +15,24 @@ pipeline {
             // sh 'scp -o "StrictHostKeyChecking=no" -i ${keyfile} ./sample vagrant@10.10.50.3:'
         }
       }
+      
     }
-
+    stage('Docker Login') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: "docker-creds", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD' )]) {
+          sh 'docker login --username ${USERNAME} --password ${PASSWORD}'
+        }
+      }
+    }
+    stage('Docker build') {
+      steps {
+        sh 'docker build . --tag karimmang/devops:v1'
+      }
+    }
+    stage('Docker push') {
+      steps {
+       sh 'docker push karimmango/devops:v1'
+      }
+    }
   }
 }
