@@ -22,7 +22,10 @@ pipeline {
         sshagent(['vagrant_ssh']) {
           sh 'ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
         }
+      }
     }
+  }
+}
   
 
 //   stages {
@@ -50,4 +53,3 @@ pipeline {
 //       }
 //     }
 //   }
-}
