@@ -1,38 +1,53 @@
 pipeline {
   agent any
+  parameters {
+    choice choices: ['qa', 'production','staging'], description: 'Select environment for deployment', name: 'DEPLOY_TO'
+    string(name: 'upstreamJobName',
+          defaultValue: 'main',
+          description: 'The name of the job the triggering upstream build'
+    )
+  }
+
+
 
   stages {
     stage('Copy artifact') {
       steps {
-        copyArtifacts filter: 'sample', fingerprintArtifacts: true, projectName: 'sample_artifact', selector: lastSuccessful()
+        copyArtifacts filter: 'sample', fingerprintArtifacts: true,
+          projectName: 'sample_multibranch/${params.upstreamJobName}', selector: BUILD_SELECTOR
       }
     }
     stage('Deliver') {
       steps {
-        withCredentials([sshUserPrivateKey(credentialsId: "vagrant_ssh", keyFileVariable: 'keyfile')]) {
-            // making changes to test pipeline
-            sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook --private-key=${keyfile} -i hosts.ini playbook.yml'
-            // sh 'scp -o "StrictHostKeyChecking=no" -i ${keyfile} ./sample vagrant@10.10.50.3:'
+        sshagent(['vagrant_ssh']) {
+          sh 'ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
         }
-      }
+    }
+  
+
+//   stages {
+//     stage('Copy artifact') {
+//       steps {
+//         copyArtifacts filter: 'sample', fingerprintArtifacts: true, projectName: 'sample_artifact', selector: lastSuccessful()
+//       }
+//     }
       
-    }
-    stage('Docker Login') {
-      steps {
-        withCredentials([usernamePassword(credentialsId: "docker-creds", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD' )]) {
-          sh 'docker login --username ${USERNAME} --password ${PASSWORD}'
-        }
-      }
-    }
-    stage('Docker build') {
-      steps {
-        sh 'docker build . --tag karimmango/devops:v1'
-      }
-    }
-    stage('Docker push') {
-      steps {
-       sh 'docker push karimmango/devops:v1'
-      }
-    }
-  }
+//     stage('Docker Login') {
+//       steps {
+//         withCredentials([usernamePassword(credentialsId: "docker-creds", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD' )]) {
+//           sh 'docker login --username ${USERNAME} --password ${PASSWORD}'
+//         }
+//       }
+//     }
+//     stage('Docker build') {
+//       steps {
+//         sh 'docker build . --tag karimmango/devops:v1'
+//       }
+//     }
+//     stage('Docker push') {
+//       steps {
+//        sh 'docker push karimmango/devops:v1'
+//       }
+//     }
+//   }
 }
