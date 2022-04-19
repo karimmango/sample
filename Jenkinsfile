@@ -26,7 +26,7 @@ pipeline {
     }
     stage('Docker build') {
       steps {
-        sh 'docker build . --tag karimmang/devops:v1'
+        sh 'docker build . --tag karimmango/devops:v1'
       }
     }
     stage('Docker push') {
