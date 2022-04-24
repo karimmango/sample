@@ -11,51 +11,18 @@ pipeline {
 
 
   stages {
-    stage('Run production deployment') {
-      when {
-        branch 'main'
-      }
-
+    stage('Copy artifact') {
       steps {
-        build job: 'sample-deploy', parameters: [string(name: 'DEPLOY_TO', value: 'production'),
-                                                 string(name: 'upstreamJobName', value: BRANCH_NAME)]
+        copyArtifacts filter: 'sample', fingerprintArtifacts: true,
+          projectName: "sample_multibranch/${params.upstreamJobName}", selector: lastSuccessful()
       }
-    stage('Run QA deployment') {
-      when {
-        branch not 'main'
-      }
-
+    }
+    stage('Deliver') {
       steps {
-        build job: 'sample-deploy', parameters: [string(name: 'DEPLOY_TO', value: 'qa'),
-                                                 string(name: 'upstreamJobName', value: BRANCH_NAME)]
+        sshagent(['vagrant_ssh']) {
+          sh 'ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
+        }
       }
-    
+    }
   }
 }
-  
-
-//   stages {
-//     stage('Copy artifact') {
-//       steps {
-//         copyArtifacts filter: 'sample', fingerprintArtifacts: true, projectName: 'sample_artifact', selector: lastSuccessful()
-//       }
-//     }
-      
-//     stage('Docker Login') {
-//       steps {
-//         withCredentials([usernamePassword(credentialsId: "docker-creds", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD' )]) {
-//           sh 'docker login --username ${USERNAME} --password ${PASSWORD}'
-//         }
-//       }
-//     }
-//     stage('Docker build') {
-//       steps {
-//         sh 'docker build . --tag karimmango/devops:v1'
-//       }
-//     }
-//     stage('Docker push') {
-//       steps {
-//        sh 'docker push karimmango/devops:v1'
-//       }
-//     }
-//   }
