@@ -11,19 +11,25 @@ pipeline {
 
 
   stages {
-    stage('Copy artifact') {
-      steps {
-        copyArtifacts filter: 'sample', fingerprintArtifacts: true,
-          projectName: "sample_multibranch/${params.upstreamJobName}", selector: lastSuccessful()
+    stage('Run production deployment') {
+      when {
+        branch 'main'
       }
-    }
-    stage('Deliver') {
+
       steps {
-        sshagent(['vagrant_ssh']) {
-          sh 'ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
-        }
+        build job: 'sample-deploy', parameters: [string(name: 'DEPLOY_TO', value: 'production'),
+                                                 string(name: 'upstreamJobName', value: BRANCH_NAME)]
       }
-    }
+    stage('Run QA deployment') {
+      when {
+        branch not 'main'
+      }
+
+      steps {
+        build job: 'sample-deploy', parameters: [string(name: 'DEPLOY_TO', value: 'qa'),
+                                                 string(name: 'upstreamJobName', value: BRANCH_NAME)]
+      }
+    
   }
 }
   
