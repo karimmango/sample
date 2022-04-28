@@ -1,9 +1,11 @@
 pipeline {
   agent any
+
   parameters {
-    choice choices: ['qa', 'production','staging'], description: 'Select environment for deployment', name: 'DEPLOY_TO'
+    choice choices: ['qa', 'production','cloud'], description: 'Select environment for deployment', name: 'DEPLOY_TO'
+
     string(name: 'upstreamJobName',
-          defaultValue: 'main',
+          defaultValue: '',
           description: 'The name of the job the triggering upstream build'
     )
   }
@@ -14,15 +16,17 @@ pipeline {
     stage('Copy artifact') {
       steps {
         copyArtifacts filter: 'sample', fingerprintArtifacts: true,
-          projectName: "sample_multibranch/${params.upstreamJobName}", selector: lastSuccessful()
+          projectName: "sample-multibranch/${params.upstreamJobName}", selector: upstream()
       }
     }
     stage('Deliver') {
       steps {
-        sshagent(['vagrant_ssh']) {
-          sh 'ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
+        sshagent(['vagrant-private-key']) {
+          sh 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook -i ${DEPLOY_TO}.ini playbook.yml'
         }
+ 
       }
     }
+   
   }
 }
